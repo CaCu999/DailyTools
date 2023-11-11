@@ -35,23 +35,4 @@ def mainWindow():
 
 if __name__ == "__main__":
     mainWindow()
-
-
-
-        # property
-    labelProp = tk.Label(window, text="dumpKey")
-    labelProp.place(relheight=0.05, relwidth=0.1, relx=0.01, rely=0)
-    entityProp = tk.Entry(window, textvariable=propVar)
-    entityProp.place(relheight=0.05, relwidth=0.15, relx=0.11, rely=0)
-    entityProp.focus_force()
-    button = tk.Button(window, text="dump", command=button_set)
-    button.place(relheight=0.05, relwidth=0.07, relx=0.27, rely=0)
-
-    # filename
-    labelName = tk.Label(window, text="value ")
-    labelName.place(relheight=0.05, relwidth=0.1, relx=0.01, rely=0.06)
-    entityName = tk.Entry(window, textvariable=nameVar)
-    entityName.place(relheight=0.05, relwidth=0.15, relx=0.11, rely=0.06)
-    entityName.focus_force()
-    resetButton = tk.Button(window, text="reset", command=button_reset)
-    resetButton.place(relheight=0.05, relwidth=0.07, relx=0.27, rely=0.06)
+    
