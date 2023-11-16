@@ -125,8 +125,4 @@ def mainWindow():
     window.mainloop()
 
 if __name__ == "__main__":
-    filepath = "D:\DailyWork\\11\\16\\test.mov"
-    # get_num(filepath)
-    # split_video(filepath)
-    # merge_video(filepath)
     mainWindow()
