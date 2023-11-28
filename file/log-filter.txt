@@ -1,0 +1,14 @@
+#---------------  UI ----------------------
+#vehiclesettingCOM | grep 'Chargecontrol'
+#UI-VEHICLE-CHARGE
+#SystemUICOM
+#UI-SYSTEMUI-COM
+#UI-VEHICLE-VEHICLEEXTERIOR  vehiclesettingCOM
+#----------------- HAL ----------------------
+libvehiclecharging
+libvehiclesolarcharging
+#AndroidRuntime
+#--------------- service --------------------
+VLogicSvc-SOL VLogicMgr-SOL VSettingModel-SOL
+VLogicSvc-CHARGING VLogicMgr-CHARGING VSettingModel-CHARGING
+

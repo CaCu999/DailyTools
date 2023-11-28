@@ -9,6 +9,7 @@ import os
 window = tk.Tk()
 log = tk.Text(window)
 logtag = tk.Text(window)
+filebox = tk.Listbox(window)
 propVar = tk.StringVar()
 nameVar = tk.StringVar()
 cuspropVar = tk.StringVar()
@@ -22,14 +23,12 @@ def selectFile():
     return path
 
 def is_adb_connected():
-    global interrupt
-    while True:
-        startT = time.time()
-        result = subprocess.run(["adb", "devices"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-        # 如果输出中包含 "no devices/emulators found"，则设备被认为是断开连接的
-        # print(result.stdout)
-        print(f"size is : {len(result.stdout.splitlines())}")
-        interrupt = len(result.stdout.splitlines()) < 3
+    result = subprocess.run(["adb", "devices"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    # 如果输出中包含 "no devices/emulators found"，则设备被认为是断开连接的
+    # print(result.stdout)
+    print(f"size is : {len(result.stdout.splitlines())}")
+    interrupt = len(result.stdout.splitlines()) < 3
+    return interrupt
 
 def adb_clear():
     result = subprocess.run(["adb", "logcat -c"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
@@ -39,59 +38,48 @@ def adb_clear():
     logpnt("---clear all---\n\n\n")
 
 def read_output(process):
-    global interrupt
-    timeout = 10
-    start = time.time()
-    while not interrupt and not stop:
-        if time.time() - start > timeout:
-            print(f"{time.time() - start}")
-            start = time.time()
-            if interrupt:
-                logpnt("adb connection lost. restarting command...")
-                process.terminate()
-                break
+    global interrupt,stop
+    while True:
+        if process.poll() is not None:
+            break
+        if stop:
+            # logpnt("interrupt...")
+            process.terminate()
+            break
+        if is_adb_connected():
+            set_textVar(log, True)
+            logpnt("adb connection lost. restarting command...")
+            logpnt("interrupt...")
+            process.terminate()
+            break
         output = process.stdout.readline()
-        # print(output)
         if output:
+        # if process.poll() is None:
             # str = output.decode('gbk')
             str = output.decode()
             str = str.strip()  # 去除字符串两端的空白字符
             q.put(str + "\n")
             start = time.time()
-    while interrupt:
-        if time.time() - start > timeout:
-            print(f"wait ... {time.time() - start}")
-            break
     log_set()
-    adb_clear()
-    if stop:
-        excute_command()  # 重新执行命令    
+    stop = False   
 
-def dump_info(value, custum = False):
-    print(value)
+def dump_info(value):
     ori = "adb shell dumpsys activity service com.iauto.vehiclelogicservice/com.iauto.vehiclelogicservice.service.VehicleLogicService"
     command = ori
-    if custum:
+    if value != "":
         command = f"{command} {value}"
     else:
-        command = f"{command} Charging"
+        command = f"{command}"
     q.put(command+"\n")
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     read_output(process)
-    time.sleep(3)
-    command = ori
-    print(command)
-    q.put(command)
-    process2 = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    read_output(process2)
 
-def log_set():    
-    command = f"call D:\Project\c++\\testPanel\log-set.bat "
+def log_set():
+    command = "call " + os.path.join(os.path.dirname(__file__), "file","log-set.bat")
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 def excute_command():
     tags = logtag.get('2.0','end').split('\n')
-    print(tags)
     command = "adb shell \"  "
     for tag in tags:
         if tag.startswith("#") or tag == "":
@@ -99,36 +87,15 @@ def excute_command():
         command += f"logcat -s {tag} & "
     command += "\""
     command += "\n"
-    # command += "adb shell \"  "
-    # # command += "logcat -s vehiclesettingCOM | grep 'Chargecontrol' & "
-    # # command += "logcat -s UI-VEHICLE-CHARGE & "
-    # # command += "logcat -s SystemUICOM & "
-    # # command += "logcat -s UI-SYSTEMUI-COM & "
-    # # command += "logcat -s UI-VEHICLE-VEHICLEEXTERIOR  vehiclesettingCOM & "
-    # command += "logcat -s libvehiclecharging & "
-    # command += "logcat -s libvehiclesolarcharging & "
-    # # command += "logcat -s AndroidRuntime & "
-    # command += "logcat -s VLogicSvc-SOL VLogicMgr-SOL VSettingModel-SOL & "
-    # command += "logcat -s VLogicSvc-CHARGING VLogicMgr-CHARGING VSettingModel-CHARGING& \""
-
-    # command = f"call  \"D:\Project\c++\\testPanel\log-filter.bat\" "
     logpnt(command)
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     read_output(process)
 
 def button_set():
     prop = propVar.get()
-    t = threading.Thread(target=dump_info, args=(prop, False))
+    t = threading.Thread(target=dump_info, args=(prop,))
     t.daemon = True
     t.start()
-    # logtag.config(state="normal")
-    # with open(logtagpath,"a") as f:
-    #     logtag.insert('end', prop + "\t" + value + "\n")
-    #     f.write(prop + "\t" + value + "\n")
-    # logtag.yview('end')
-    # logtag.config(state="disabled")
-    # global logpath
-    # logpath = os.path.join(logdir, f"{prop.upper()}_{time.strftime('%H%M%S')}.log")
     set_textVar(log, False)
 
 def update_ui():
@@ -139,6 +106,45 @@ def button_reset():
     log.config(state="normal")
     log.delete('1.0','end')
     log.config(state="disabled")
+    update_logpath()
+
+def button_ensure_key():
+    # adb_clear()
+    lines = logtag.get('2.0','end').split("\n")
+    config_logtag(lines)
+    global stop
+    stop = True
+    t = threading.Thread(target=excute_command)
+    t.daemon = True
+    t.start()
+    set_textVar(log, False)
+    with open(logtagpath, 'w') as f:
+        str = logtag.get('2.0', 'end')
+        f.write(str) 
+
+def set_textVar(textShow, isClear = False):
+    # with open(logpath, 'a') as f:
+    key = cuspropVar.get()
+    textShow.config(state="normal")
+    if isClear:
+        textShow.delete('1.0','end')
+    while not q.empty():
+        str = q.get()
+        if key in str:
+            start = str.find(key)
+            end = start + len(key)
+            textShow.insert('end', str[:start])                      # 插入key前的文本
+            textShow.insert('end', str[start:end], "highlight")      # 插入key，并添加tag
+            textShow.insert('end', str[end:])                        # 插入key后的文本
+        else:
+            textShow.insert('end', str)
+        textShow.yview('end')
+    textShow.config(state='disabled')
+
+def logpnt(str):
+    q.put(str + "\n")
+
+def update_logpath():
     global logpath,filename
     name = nameVar.get()
     if name == "" :
@@ -148,78 +154,50 @@ def button_reset():
         print(name)
         filename = name + '_' + time.strftime('%d%H%M%S')+".log"
     logpath = os.path.join(logdir, filename)
-    print(logpath)
-
-def button_ensure_key():
-    prop = cuspropVar.get()
-    # value = cusvalueVar.get()
-    # t = threading.Thread(target=dump_info, args=(prop, True))
-    # t.daemon = True
-    # t.start()
-    lines = logtag.get('2.0','end')
-    config_logtag(lines)
-    global stop
-    stop = True
-    t = threading.Thread(target=excute_command)
-    t.daemon = True
-    t.start()
-    # logtag.config(state="normal")
-    # with open(logtagpath,"a") as f:
-    #     logtag.insert('end', prop + "\t" + value + "\n")
-    # f.write(prop + "\t" + value + "\n")
-    # logtag.yview('end')
-    # logtag.config(state="disabled")
-    # global logpath
-    # logpath = os.path.join(logdir, f"{prop.upper()}_{value}_{time.strftime('%Y%m%d%H%M%S')}.log")
-    set_textVar(log, True)
-    with open(logtagpath, 'w') as f:
-        str = logtag.get('2.0', 'end')
-        f.write(str)
-
-def set_textVar(textShow, isClear = False):
-    # with open(logpath, 'a') as f:
-    textShow.config(state="normal")
-    if isClear:
-        textShow.delete('1.0','end')
-    while not q.empty():
-        str = q.get()
-        # f.write(str)
-        textShow.insert('end', str)
-        textShow.yview('end')
-    textShow.config(state='disabled')
-
-def logpnt(str):
-    q.put(str + "\n")
 
 def export_log():
+    update_logpath()
     with open(logpath, 'a') as f:
         str = log.get('1.0', 'end')
         f.write(str)
     logpnt("\n\n\n-----save done-------\n\n\n")
+    global file_paths
+    while len(file_paths) > 2:
+        file_paths.pop()
+        filebox.delete(0)
+    filebox.insert(len(file_paths), logpath)
+    file_paths.append(logpath)
 
 def config_logtag(lines):
-    print("config_logtag______")
     logtag.config(state="normal")
     logtag.tag_remove("highlight", '1.0', 'end')  # 删除之前的 "highlight" 标签
     logtag.delete('1.0','end')
     logtag.insert('end', "\t去除此tag请以#开头或直接删除\n")
     for index, line in enumerate(lines, start=2):
+        line = line.replace("\n","")
         if line != "":
-            logtag.insert('end', line)
+            logtag.insert('end', line + "\n")
         if not line.startswith("#") and line != '':
             start = f'{index}.0'
             end = f'{index}.end'
-            logtag.tag_add("highlight", start, end)           
+            logtag.tag_add("highlight", start, end)
     logtag.yview('end')
     
+def open_file(filedir):
+    os.startfile(filedir)
+
 def main_window():
     global q,logpath,logdir,logtagpath,stop
+    global file_paths
+    file_paths = []
     q = queue.Queue()
     stop = False
     filename = time.strftime('%Y%m%d%H%M%S')+".log"
     logdir = selectFile()
     logpath = os.path.join(logdir, filename)
-    logtagpath = os.path.join(logdir, "logtag.txt")
+    # logtagpath = os.path.join(logdir, "logtag.txt")
+    logtagpath = "testPanel\log-filter.txt"
+    logtagpath = os.path.join(os.path.dirname(__file__), "file" , "log-filter.txt")
     window.geometry("1000x800")    
     # logtag panel
     logtag.place(relwidth=0.73, relheight=0.3, relx=0.4, rely=0)
@@ -240,7 +218,7 @@ def main_window():
     button.place(relheight=0.05, relwidth=0.07, relx=0.27, rely=0)
 
     # filename
-    labelName = tk.Label(window, text="value ")
+    labelName = tk.Label(window, text="filename")
     labelName.place(relheight=0.05, relwidth=0.1, relx=0.01, rely=0.06)
     entityName = tk.Entry(window, textvariable=nameVar)
     entityName.place(relheight=0.05, relwidth=0.15, relx=0.11, rely=0.06)
@@ -263,16 +241,19 @@ def main_window():
         lines = f.readlines()
         config_logtag(lines)
 
-    entityensure_keyVal = tk.Entry(window, textvariable=cusvalueVar)
-    entityensure_keyVal.place(relheight=0.05, relwidth=0.2, relx=0.14, rely=0.2)
-    entityensure_keyVal.focus_force()
-
+    #file path
+    # label_path = tk.Label(window, text="filedir")
+    # label_path.place(relheight=0.05, relwidth=0.1, relx=0.01, rely=0.18)
+    filebox.place(relheight=0.1, relwidth=0.27, relx=0.01, rely=0.18)
+    filebox.bind('<Double-Button-1>', lambda event: open_file(filebox.get(filebox.curselection())))    
     # button of set ensure_key value
     exportButton = tk.Button(window, text="export", command=export_log)
-    exportButton.place(relheight=0.05, relwidth=0.1, relx=0.15, rely=0.26)
+    exportButton.place(relheight=0.05, relwidth=0.1, relx=0.29, rely=0.23)
+    
     # log panel
     log.place(relwidth=0.98, relheight=0.68, relx=0, rely=0.32)
     log.config(state="disabled")
+    log.tag_config("highlight", background='yellow')   
     scrolllog = tk.Scrollbar(window)
     scrolllog.place(relwidth=0.02, relheight=0.68, relx=0.98, rely=0.32)
     log.config(yscrollcommand=scrolllog.set)
@@ -283,10 +264,10 @@ def main_window():
     t = threading.Thread(target=excute_command)
     t.daemon = True
     t.start()
-    p = threading.Thread(target=is_adb_connected)
-    p.daemon = True
-    p.start()
-    window.after(50, update_ui)
+    # p = threading.Thread(target=is_adb_connected)
+    # p.daemon = True
+    # p.start()
+    window.after(100, update_ui)
     window.mainloop()
 
 if __name__ == "__main__":
