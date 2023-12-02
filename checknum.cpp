@@ -22,7 +22,7 @@ uint8_t calculate_checksum(uint16_t can_id, const std::vector<uint8_t>& data_byt
 
 int main() {
     uint16_t can_id = 0x294;
-    std::vector<uint8_t> data_bytes = {0x00, 0x00, 0x10, 0x00, 0x50, 0x00, 0x00, 0x00};
+    std::vector<uint8_t> data_bytes = {0x00, 0x00, 0x10, 0x00, 0x40, 0x00, 0x00, 0x00};
     uint8_t dlc = 8;
     
     uint8_t checksum = calculate_checksum(can_id, data_bytes, dlc);

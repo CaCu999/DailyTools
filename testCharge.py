@@ -5,6 +5,7 @@ from tkinter import filedialog
 import time
 import threading
 import os
+import select
 
 window = tk.Tk()
 log = tk.Text(window)
@@ -40,28 +41,34 @@ def adb_clear():
 def read_output(process):
     global interrupt,stop
     while True:
+        logpnt("read output")
         if process.poll() is not None:
             break
         if stop:
-            # logpnt("interrupt...")
-            process.terminate()
-            break
-        if is_adb_connected():
-            set_textVar(log, True)
-            logpnt("adb connection lost. restarting command...")
             logpnt("interrupt...")
             process.terminate()
+            if is_adb_connected():
+                set_textVar(log, True)
+                logpnt("adb connection lost. restarting command...")
+                logpnt("interrupt...")
+                process.terminate()
+                break
             break
         output = process.stdout.readline()
-        if output:
-        # if process.poll() is None:
+        if output is not None:
             # str = output.decode('gbk')
             str = output.decode()
             str = str.strip()  # 去除字符串两端的空白字符
             q.put(str + "\n")
             start = time.time()
+        else:
+            print("out")
     log_set()
-    stop = False   
+    if stop:
+        process.terminate()
+        stop = False
+        excute_command()
+
 
 def dump_info(value):
     ori = "adb shell dumpsys activity service com.iauto.vehiclelogicservice/com.iauto.vehiclelogicservice.service.VehicleLogicService"
@@ -93,7 +100,7 @@ def excute_command():
 
 def button_set():
     prop = propVar.get()
-    t = threading.Thread(target=dump_info, args=(prop,))
+    t = threading.Thread(target=dump_info, args=(prop,), name="dumpinfo")
     t.daemon = True
     t.start()
     set_textVar(log, False)
@@ -110,13 +117,13 @@ def button_reset():
 
 def button_ensure_key():
     # adb_clear()
-    lines = logtag.get('2.0','end').split("\n")
-    config_logtag(lines)
     global stop
     stop = True
-    t = threading.Thread(target=excute_command)
-    t.daemon = True
-    t.start()
+    lines = logtag.get('2.0','end').split("\n")
+    config_logtag(lines)
+    # t = threading.Thread(target=excute_command, name="excute_command")
+    # t.daemon = True
+    # t.start()
     set_textVar(log, False)
     with open(logtagpath, 'w') as f:
         str = logtag.get('2.0', 'end')
@@ -138,6 +145,7 @@ def set_textVar(textShow, isClear = False):
             textShow.insert('end', str[end:])                        # 插入key后的文本
         else:
             textShow.insert('end', str)
+        textShow.insert('end', str)
         textShow.yview('end')
     textShow.config(state='disabled')
 
@@ -261,13 +269,13 @@ def main_window():
 
     global interrupt
     interrupt = False
-    t = threading.Thread(target=excute_command)
+    t = threading.Thread(target=excute_command, name = "excute_command")
     t.daemon = True
     t.start()
     # p = threading.Thread(target=is_adb_connected)
     # p.daemon = True
     # p.start()
-    window.after(100, update_ui)
+    window.after(200, update_ui)
     window.mainloop()
 
 if __name__ == "__main__":

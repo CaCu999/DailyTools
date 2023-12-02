@@ -10,5 +10,7 @@ libvehiclesolarcharging
 #AndroidRuntime
 #--------------- service --------------------
 VLogicSvc-SOL VLogicMgr-SOL VSettingModel-SOL
-VLogicSvc-CHARGING VLogicMgr-CHARGING VSettingModel-CHARGING
+VLogicSvc-CHARGING VLogicMgr-CHARGING
+VSettingModel-CHARGING
+SystemUI-ChargeControl
 

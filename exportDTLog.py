@@ -2,8 +2,11 @@ from tkinter import filedialog
 import pandas as pd
 import os
 import json
+import subprocess
 
 def mainWindow():
+    exefile = "D:\\Software\\DTLOG解密解析工具\\TraceFileParser_200710.exe"
+    result = subprocess.run(exefile, shell=True, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
     file = filedialog.askopenfilename(filetypes= [("all files", "*.csv")])
     sh = os.path.basename(file)
     print(file)
@@ -24,6 +27,8 @@ def mainWindow():
         for index,row in select_rows.iterrows():
             time = row['DATE_TIME'] 
             log_data = row['LOG_DATA']
+            if len(log_data.split("|")) == 0:
+                continue
             func = data[log_data.split("|")[0]]
             content = log_data.split("|")[1]
             content = content.replace("DynamicData:","")
