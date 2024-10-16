@@ -1,0 +1,13 @@
+{
+    "Project Root Directory": "D:/AutoTestCase/24mm",
+    "Checklist Path": "D:/Documents/Project/Rhine/AutoTest/templateChangedV1_8/AutoCase_丰田_24MM_SystemQualificationTest_09_02_01_Spec_Air Conditioner.xlsx",
+    "Product Name": "a",
+    "Case Predix": "7",
+    "Screen Table": "D:/Documents/Project/Rhine/AutoTest/templateChangedV1_8/reference/ScreenInfo-Air.xlsx",
+    "Screens Directory": "D:/AutoTestCase/24mm/Common/InfraLib/Screens/AirConditioner",
+    "Scripts Table": "D:/Documents/Project/Rhine/AutoTest/templateChangedV1_8/reference/scripts-Air.xlsx",
+    "Can Config": "D:/Documents/Project/Rhine/AutoTest/templateChangedV1_8/reference/CANConfig-Air.xlsx",
+    "Pic Mapping Table": "D:/Documents/Project/Rhine/AutoTest/templateChangedV1_8/reference/PicMapping-Air.xlsx",
+    "Api Mapping Table": "D:/AutoTestCase/24mm/Common/ProjPlugins/API_Map/api_map.xlsx",
+    "VehicleType": "L_1920X1080"
+}

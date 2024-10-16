@@ -1,0 +1,46 @@
+#---------------  UI ----------------------
+#vehiclesettingCOM | grep "Charge"
+#vehiclesettingCOM | grep -v "auto:getChargeControl_"
+#vehiclesettingcharge
+#UI-VEHICLE-CHARGE
+#UI-VEHICLE-COM
+#SystemUICOM 
+#UI-SYSTEMUI-COM
+#UI-VEHICLE-VEHICLEEXTERIOR  vehiclesettingCOM
+SystemUI-ChargeControl
+#SystemUIvehicleons
+#----------------- HAL ----------------------
+#---L---
+#libvehiclecharging | grep -v "PLG1S20"
+#SYS_HWH_VINFO_VEHICLE | grep 557863566
+#libvehiclesolarchargingservice
+AndroidRuntime
+#---T1---
+HSAE_VHAL_DataAdapter_v2_0 | grep "charging"
+HSAE_VHAL_DataAdapter_v2_0 | grep "P_LMTNO"
+HSAE_VHAL_MetadataContext_v2_0 | grep "A_NCTY"
+HSAE_VHAL_DataAdapter_v2_0 | grep "a_nct"
+#---T2---
+#VehiclePlatform | grep "VehicleHal"
+#VehiclePlatform |grep  -v "1cb00"
+#vehiclehal-PrintHelper
+#vehiclehal-proto
+#--------------- service --------------------
+#VLogicSvc
+#VLogicSvc-SOL VLogicMgr-SOL
+#VSettingModel-SOL
+#VLogicSvc-CHARGING VLogicMgr-CHARGING
+#VSettingModel-CHARGING 
+VSettingModel-CHARGING | grep -v "get"
+VehicleGlobalSearch
+#VSettingModel-CUSTOM VLogicSvc-DK VLogicSvc 
+#IVI-DTLIB-FW | grep -v "DTTRACEID_APPAGENTSERVICE"
+#VLogicSvc-VS
+#VLogicSvc-CUSTOM 
+#VSettingModel-CUSTOM 
+#VSettingModel-ILL
+#SeatMassageFC
+#VLogicMgr-VS
+#VSettingModel-WLC
+#VLogicSvc-WLC
+

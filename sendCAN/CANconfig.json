@@ -1,0 +1,39 @@
+{
+    "CANConfig":[
+        {
+            "interface" : "kvaser", 
+            "channel" : 0, 
+            "receive_own_messages" : true, 
+            "app_name" : "kvaser0", 
+            "bitrate" : "500",
+            "tseg1" : 55,
+            "tseg2" : 24,
+            "data_bitrate" : "2000",
+            "fd" : true,
+            "dbc_path" : "./dbc/globalcan.dbc",
+			"reply_path" : "./json/reply/all_reply.json",
+            "sequence_path" : "./json/reply/all_sequence.json"
+        },
+        {
+            "interface" : "kvaser", 
+            "channel" : 1, 
+            "receive_own_messages" : true, 
+            "app_name" : "kvaser1", 
+            "bitrate" : "500",
+            "tseg1" : 55,
+            "tseg2" : 24,
+            "data_bitrate" : "500",
+            "fd" : false,
+            "dbc_path" : "./dbc/localcan.dbc",
+			"reply_path" : "./json/reply/all_reply.json",
+            "sequence_path" : "./json/reply/all_sequence.json"
+        }
+    ],
+    "COMConfig":{
+        "TPProtocol" : "UDP",
+        "ServerIP"   : "192.168.30.17",   
+        "ServerPort" : 49206,   
+        "ClientIP"   : "192.168.30.15",  
+        "ClientPort" : 49206
+    }
+}

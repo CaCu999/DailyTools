@@ -1,0 +1,20 @@
+[12:02:52.861] [MainWindow.cpp:53:on_StartSW_clicked] [0xd4c4]     ---------------------------------------
+[12:02:52.944] [TraceFileParser.cpp:135:run] [0xf068]              runing...
+[12:02:52.944] [TraceFileParser.cpp:154:parse] [0xf068]            source:D:\DailyWork\05\11\08_CHARGING, spliteSize:1KB
+[12:02:52.947] [TraceFileParser.cpp:444:files2db] [0xf068]         D:\DailyWork\05\11\08_CHARGING/CHARGING000.dat_back
+[12:02:52.954] [TraceFileParser.cpp:519:files2db] [0xf068]         D:\DailyWork\05\11\08_CHARGING log count:393 !
+[12:02:53.044] [TraceFileParser.cpp:282:parseFiles] [0xf068]       D:\DailyWork\05\11\08_CHARGING Done.
+[12:02:53.044] [TraceFileParser.cpp:139:run] [0xf068]              Quit !
+[12:06:13.741] [MainWindow.cpp:53:on_StartSW_clicked] [0xeef0]     ---------------------------------------
+[12:06:13.807] [TraceFileParser.cpp:135:run] [0xeb4c]              runing...
+[12:06:13.814] [TraceFileParser.cpp:154:parse] [0xeb4c]            source:D:\DailyWork\05\11\08_CHARGING\DT_PARSER, spliteSize:1KB
+[12:06:13.815] [TraceFileParser.cpp:307:findTraceFiles] [0xeb4c]   D:\DailyWork\05\11\08_CHARGING\DT_PARSER Skip: non-trace file(CHARGING0000000000.log), Invalid suffix !
+[12:06:13.815] [TraceFileParser.cpp:227:parseFiles] [0xeb4c]       D:\DailyWork\05\11\08_CHARGING\DT_PARSER Skip: Unable to find trace files !
+[12:06:13.815] [TraceFileParser.cpp:139:run] [0xeb4c]              Quit !
+[12:06:22.676] [MainWindow.cpp:53:on_StartSW_clicked] [0xeef0]     ---------------------------------------
+[12:06:22.730] [TraceFileParser.cpp:135:run] [0xee38]              runing...
+[12:06:22.732] [TraceFileParser.cpp:154:parse] [0xee38]            source:D:\DailyWork\05\11\08_CHARGING, spliteSize:1KB
+[12:06:22.738] [TraceFileParser.cpp:444:files2db] [0xee38]         D:\DailyWork\05\11\08_CHARGING/CHARGING000.dat_back
+[12:06:22.748] [TraceFileParser.cpp:519:files2db] [0xee38]         D:\DailyWork\05\11\08_CHARGING log count:510 !
+[12:06:22.860] [TraceFileParser.cpp:282:parseFiles] [0xee38]       D:\DailyWork\05\11\08_CHARGING Done.
+[12:06:22.860] [TraceFileParser.cpp:139:run] [0xee38]              Quit !
