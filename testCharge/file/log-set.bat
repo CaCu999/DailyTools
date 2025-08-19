@@ -1,6 +1,6 @@
 adb wait-for-device
 adb root
-rem adb shell logcat -c
+adb logcat -c
 adb shell  setprop persist.iauto.appupdate true
 adb shell setprop persist.vendor.iauto.log.switch 31
 #adb shell setprop persist.log.tag S
@@ -68,4 +68,4 @@ adb shell setprop persist.log.tag S
 rem adb shell "logcat -s SYS_HWH_VINFO_VEHICLE | grep -i 'broadcast propid' & logcat -s libvehiclesolarchargingservice &  logcat -s ChargecontrolModel ChargecontrolModelAPIImpl ChargecontrolFC & logcat -s vehiclesettingCOM | grep -i 'Chargecontrol' & logcat -s vehiclesettingCOM | grep -i 'Solar' &  logcat -s  UI-VEHICLE-CHARGE & logcat -s AndroidRuntime &  logcat -s IVI-VEHICLELOGIC-SVC | grep -i 'VehicleChargingService' & logcat -s VLogicSvc-SOL VLogicMgr-SOL VSettingModel-SOL & logcat -s VLogicSvc-CHARGING VLogicMgr-CHARGING VSettingModel-CHARGING&"
 rem logcat -s SYS_HWH_VINFO_VEHICLE | grep -i 'broadcast propid' &
 start "ADB Logcat" cmd /c "C:\Users\hyw\Desktop\outlog.bat"
-adb shell " logcat -s libvehiclesolarchargingservice &  logcat -s ChargecontrolModel ChargecontrolModelAPIImpl ChargecontrolFC & logcat -s vehiclesettingCOM | grep -i 'Chargecontrol' & logcat -s vehiclesettingCOM | grep -i 'Solar' &  logcat -s  UI-VEHICLE-CHARGE & logcat -s VLogicSvc-SOL VLogicMgr-SOL VSettingModel-SOL & logcat -s VLogicSvc-CHARGING VLogicMgr-CHARGING VSettingModel-CHARGING& logcat -s libvehiclecharging & logcat -s libvehiclesolarcharging & logcat -s HSAE_VHAL_DataAdapter_v2_0 & logcat -s VehiclePlatform & logcat -s vehiclehal-PrintHelper & logcat -s vehiclehal-proto &"
+rem adb shell " logcat -s libvehiclesolarchargingservice &  logcat -s ChargecontrolModel ChargecontrolModelAPIImpl ChargecontrolFC & logcat -s vehiclesettingCOM | grep -i 'Chargecontrol' & logcat -s vehiclesettingCOM | grep -i 'Solar' &  logcat -s  UI-VEHICLE-CHARGE & logcat -s VLogicSvc-SOL VLogicMgr-SOL VSettingModel-SOL & logcat -s VLogicSvc-CHARGING VLogicMgr-CHARGING VSettingModel-CHARGING& logcat -s libvehiclecharging & logcat -s libvehiclesolarcharging & logcat -s HSAE_VHAL_DataAdapter_v2_0 & logcat -s VehiclePlatform & logcat -s vehiclehal-PrintHelper & logcat -s vehiclehal-proto &"

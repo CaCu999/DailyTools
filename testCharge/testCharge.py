@@ -6,6 +6,7 @@ import time
 import threading
 import os
 import json
+import re
 
 window = tk.Tk()
 log = tk.Text(window)
@@ -36,11 +37,9 @@ def adb_clear():
     log.config(state="disabled")
     logpnt("---clear all---\n\n\n")
 
-def read_output(process):
+def read_output(process : subprocess.Popen):
     global interrupt,stop
     while True:
-        # if process.poll() is not None:
-        #     break
         if stop:
             logpnt("interrupt...")
             process.terminate()
@@ -49,39 +48,55 @@ def read_output(process):
                 logpnt("adb connection lost. restarting command...")
                 logpnt("interrupt...")
                 process.terminate()
-                break
             break
+        if process.poll() is not None:
+            logpnt(f"print {process.poll()}")
+            if process.poll() >= 1:
+                process.terminate()
+        #         return
+                break
         output = process.stdout.readline()
         if output:
-            # str = output.decode('gbk')
+            str = output.decode('gbk')
             try:
                 str = output.decode()
             except:
                 continue
             str = str.strip()  # 去除字符串两端的空白字符
-            q.put(str + "\n")
+            logpnt(str)
+            # print(">>>>" +  str)
             start = time.time()
     log_set()
-    # if stop or is_adb_connected():
-    adb_clear()
+    # adb_clear()
+    logpnt("start clear")
     process.terminate()
+    logpnt("end clear")
     stop = False
     excute_command()
 
 
-def dump_info(value):
+def dump_info(value: str):
     ori = "adb shell dumpsys activity service com.iauto.vehiclelogicservice/com.iauto.vehiclelogicservice.service.VehicleLogicService"
+    car = "adb shell dumpsys activity service com.android.car/.CarService  get-property-value "
     command = ori
     if len(value.split(" "))  == 2:
         ls = value.split(" ")
-        if props[ls[0]] is not None:
+        prop = props[ls[0]] if props.get(ls[0]) is not None else ""
+        logpnt(prop)
+        if prop != "":
             ls[0] = props[ls[0]]
             value = "prop" + " " + ls[0] + " " + ls[1]
-    if value != "":
+        else:
+            logpnt(value)
+    
+    if value.startswith("0x"):
+        command = f"{car} {value}"
+    elif value != "":
         command = f"{command} {value}"
     else:
         command = f"{command}"
-    q.put(command+"\n")
+    global q
+    logpnt(command)
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # read_output(process)
     global interrupt,stop
@@ -100,10 +115,10 @@ def dump_info(value):
             break
         output = process.stdout.readline()
         if output:
-            # str = output.decode('gbk')
-            str = output.decode()
+            str = output.decode('gbk')
+            # str = output.decode()
             str = str.strip()  # 去除字符串两端的空白字符
-            q.put(str + "\n")
+            logpnt(str)
         else:
             break
 
@@ -118,12 +133,14 @@ def prop_set(prop):
     # print(command)
 
 def excute_command():
+    global stop
+    logpnt(f"excute_command {stop}")
     tags = logtag.get('2.0','end').split('\n')
     command = "adb shell \"  "
-    # for tag in tags:
-    #     if tag.__contains__("|") : tag = tag.split('|')[0]
-    #     if tag.startswith("#") or len(tag) == 0: continue
-    #     prop_set(tag)
+    for tag in tags:
+        if tag.__contains__("|") : tag = tag.split('|')[0]
+        if tag.startswith("#") or len(tag) == 0: continue
+        prop_set(tag)
     for tag in tags:
         if tag.startswith("#") or tag == "":
             continue
@@ -143,12 +160,13 @@ def button_set():
 
 def update_ui():
     set_textVar(log)
-    window.after(100, update_ui)
+    window.after(500, update_ui)
 
 def button_reset():
     log.config(state="normal")
     log.delete('1.0','end')
     log.config(state="disabled")
+    window.clipboard_clear()
     update_logpath()
 
 def button_ensure_key():
@@ -157,9 +175,9 @@ def button_ensure_key():
     stop = True
     lines = logtag.get('2.0','end').split("\n")
     config_logtag(lines)
-    t = threading.Thread(target=excute_command, name="excute_command")
-    t.daemon = True
-    t.start()
+    # t = threading.Thread(target=excute_command, name="excute_command_ensure_key")
+    # t.daemon = True
+    # t.start()
     set_textVar(log, False)
     with open(logtagpath, 'w') as f:
         str = logtag.get('2.0', 'end')
@@ -171,11 +189,31 @@ def set_textVar(textShow, isClear = False):
     textShow.config(state="normal")
     if isClear:
         textShow.delete('1.0','end')
-    while not q.empty():
-        str = q.get()
+    if busy_queue.empty():
+        print("emp")
+        global q
+        read_queue = q
+        print(free_queue.__sizeof__())
+        q = free_queue.get()
+        print(q.__sizeof__())
+    else:
+        read_queue = busy_queue.get()
+    print(read_queue.empty())
+    read_two_queue = read_queue.__sizeof__() < 300
+    while not read_queue.empty():
+        print(read_queue.__sizeof__())
+        str = read_queue.get()
+        print(str)
+        if "adb shell" not in str and "Client:" not in str and "*Dump for Commands*" not in str and "com.iauto.vehiclelogicservice" not in str and str != "\n":
+            window.clipboard_append(str)
+        # math = re.search(re.escape(key), str)
+        # if math != None: print(f'{math.start} {math.end}')
         if key in str:
             start = str.find(key)
             end = start + len(key)
+        # if math:
+            # start = math.start
+            # end = math.end
             textShow.insert('end', str[:start])                      # 插入key前的文本
             textShow.insert('end', str[start:end], "highlight")      # 插入key，并添加tag
             textShow.insert('end', str[end:])                        # 插入key后的文本
@@ -183,10 +221,20 @@ def set_textVar(textShow, isClear = False):
             textShow.insert('end', str)
         # textShow.insert('end', str)
         textShow.yview('end')
+        if read_two_queue and read_queue.empty():
+            free_queue.put(read_output)
+            read_queue = busy_queue.get()
+            read_two_queue = False
+    free_queue.put(read_queue)
+
     textShow.config(state='disabled')
 
 def logpnt(str):
+    global q
     q.put(str + "\n")
+    if q.__sizeof__() > 500:
+        busy_queue.put(q)
+        q = free_queue.get()
 
 def update_logpath():
     global logpath,filename
@@ -241,7 +289,14 @@ def main_window():
     with open(proppath) as file:
         props = json.load(file)
     file_paths = []
-    q = queue.Queue()
+    global free_queue, busy_queue
+    free_queue = queue.Queue()
+    for i in range(0,3):
+        t = queue.Queue()
+        free_queue.put(t)
+    busy_queue = queue.Queue()
+    q = free_queue.get()
+
     stop = False
     filename = time.strftime('%Y%m%d%H%M%S')+".log"
     logdir = selectFile()
@@ -302,7 +357,7 @@ def main_window():
     # button of set ensure_key value
     dirButton = tk.Button(window, text="open dir", command=open_dir)
     dirButton.place(relheight=0.045, relwidth=0.1, relx=0.29, rely=0.18)
-
+    
     exportButton = tk.Button(window, text="export", command=export_log)
     exportButton.place(relheight=0.05, relwidth=0.1, relx=0.29, rely=0.23)
     
@@ -317,13 +372,13 @@ def main_window():
 
     global interrupt
     interrupt = False
-    t = threading.Thread(target=excute_command, name = "excute_command-1")
+    t = threading.Thread(target=excute_command, name = "excute_command-main")
     t.daemon = True
     t.start()
     # p = threading.Thread(target=is_adb_connected)
     # p.daemon = True
     # p.start()
-    window.after(100, update_ui)
+    window.after(500, update_ui)
     window.mainloop()
 
 if __name__ == "__main__":
