@@ -4,7 +4,7 @@ from canlib import canlib, Frame
 import time
 from cantools import database
 
-configpath = os.path.join(os.path.dirname(__file__), "CANconfig.json")
+configpath = os.path.join(os.path.dirname(__file__), "file", "CANconfig.json")
 with open(configpath) as f:
     config = json.load(f)
 print(configpath)
@@ -36,31 +36,47 @@ print("%d. %s (%s / %s) " % (channel_number,
                              chd.card_upc_no,
                              chd.card_serial_no))
 ch = canlib.openChannel(channel_number,flags=canlib.canOPEN_ACCEPT_VIRTUAL)
-ch.setBusParams(canlib.canBITRATE_500K, 0, 0, 0, 0, canlib.canFD_BITRATE_2M_80P)
+# ch.setBusParams(canlib.canBITRATE_500K, 0, 0, 0, 0, canlib.canFD_BITRATE_2M_80P)
 print("Going on bus")
-ch.busOn()
-frame = Frame(id_ = 0x445,
-              data = [0,0,0,0, 0,0,0,0],
-              dlc=0,
-              flags=0)
-frame2 = Frame(id_ = 0x440,
-               data = [0x40, 0x40, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00],
-               dlc=8,
-               flags=0)
-frame3 = Frame(id_=0x2A6,
-               data = [0x00, 0x00, 0x0d, 0x32, 0x01, 0xFF, 0x01, 0xFF, 
-                       0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-                       0x00, 0x00, 0x01, 0xFF, 0x01, 0xFF, 0xFF, 0xFF, 
-                       0x01, 0xFF, 0xFE, 0x00, 0x00, 0x00, 0x00, 0x00],
-                dlc = 32,
-                flags=0)
-ch.write(frame)
-ch.write(frame2)
-ch.write(frame3)
+# ch.busOn()
+# frame = Frame(id_ = 0x445,
+#               data = [0,0,0,0, 0,0,0,0],
+#               dlc=0,
+#               flags=0)
+# frame2 = Frame(id_ = 0x440,
+#                data = [0x40, 0x40, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00],
+#                dlc=8,
+#                flags=0)
+# dbcpath = os.path.join(os.path.dirname(__file__), "file", "global-2M.dbc")
+dbcpath = "D:\\BasicSetting\\dbc\\excel2dbc-GlobalCAN_19PFv3-GCANID_T.dbc"
+dbc = database.load_file(dbcpath)
+res = dbc.get_message_by_name("PLG1G17")
+signal = res.get_signal_by_name("P_TMRAVA")
+print(f'{signal.value}')
+raw_value = 2
+buffer = bytearray(8)
+print(signal.byte_order)
+buffer.extend(raw_value.to_bytes(length=signal.length, byteorder='big'))
+frame_cus = Frame(id_ = res.frame_id, data=buffer)
+print(frame_cus.data)
+# print(dbc)
+# ch.write(frame)
 # ch.write(frame2)
+if len(frame_cus.data) == 0:
+    print("帧ID或数据为空!")
+    # 处理这种情况
+
+ch.write(frame_cus)
+
+# # ch.write(frame2)
 print("Waiting for incoming messages....")
 while True:
-    recv_frame = ch.read(timeout=1000)
+    try:
+        recv_frame = ch.read(timeout=1000)
+    except Exception as e:
+        print(f"err {e}")
+        break
+
     if recv_frame:
         print(f"recv message {recv_frame}")
         
