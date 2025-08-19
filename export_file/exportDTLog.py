@@ -4,11 +4,7 @@ import os
 import json
 import subprocess
 
-def mainWindow():
-    exefile = os.path.join(os.path.dirname(__file__), "file" , "TraceFileParser_200710.exe")
-    # exefile = "D:\\Software\\DTLOG解密解析工具\\TraceFileParser_200710.exe"
-    result = subprocess.run(exefile, shell=True, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-    file = filedialog.askopenfilename(filetypes= [("all files", "*.csv")])
+def read_trans_file(file: str):
     if file == "":
         return
     sh = os.path.basename(file)
@@ -30,17 +26,34 @@ def mainWindow():
     print(df.columns)
     with open(path, 'a') as f:
         for index,row in select_rows.iterrows():
+            lapse = "{:.3f}".format(row['TICKCOUNT(ms)']/1000)
             time = row['DATE_TIME'] 
-            log_data = row['LOG_DATA']
+            log_data = str(row['LOG_DATA'])
             if len(log_data.split("|")) == 0:
                 continue
+            eventID = log_data.split("|")[0].replace("EventID:", "")
             func = data[log_data.split("|")[0]] if data.get(log_data.split("|")[0]) is not None else log_data.split("|")[0]
-            content = log_data.split("|")[1]
-            content = content.replace("DynamicData:","")
-            content = prop[content] if prop.get(content) is not None else prop[content.upper()] if prop.get(content.upper()) is not None else content
-            line = f"{time} {func}: {content}\n"
+            print(log_data)
+            print(len(log_data.split("|")))
+            if len(log_data.split("|")) != 1:
+                content = log_data.split("|")[1]
+                content = content.replace("DynamicData:","")
+                content = prop[content] if prop.get(content) is not None else prop[content.upper()] if prop.get(content.upper()) is not None else content
+                line = f"{lapse} {time} {eventID} {func}: {content}\n"
+            else:
+                line = f"{lapse} {time} {eventID} {func}\n"
             f.write(line)
             print(line)
+
+def mainWindow():
+    exefile = os.path.join(os.path.dirname(__file__), "file" , "TraceFileParser_200710.exe")
+    # exefile = "D:\\Software\\DTLOG解密解析工具\\TraceFileParser_200710.exe"
+    result = subprocess.run(exefile, shell=True, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+
+    # file = filedialog.askopenfilename(filetypes= [("all files", "*.csv")])
+    files = filedialog.askopenfilenames(filetypes=[("all files", "*.csv")])
+    for file in files:
+        read_trans_file(file)
         
 
 if __name__ == "__main__":
