@@ -17,10 +17,10 @@ def trans():
             print(f"{key} : {val} _{input}__ {input.__contains__(key)}")
             if input.__contains__(key):
                 input = input.replace(key, val)
-                if input.startswith("\\\\"):
-                    input = input.replace("/", "\\")
-                else:
-                    input = input.replace("\\", "/")
+                # if input.startswith("\\\\"):
+                #     input = input.replace("/", "\\")
+                # else:
+                input = input.replace("\\", "/")
                 outputVar.set(input)
                 window.clipboard_clear()
                 window.clipboard_append(input)
