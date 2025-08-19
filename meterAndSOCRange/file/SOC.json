@@ -1,0 +1,11 @@
+{
+    "【空調減算率処理】" : [
+        "CNGPIEVD", "PIEVD100", "PIEVDSR"
+    ],
+    "【単位変換処理】": [
+        "UNIT_6"
+    ],
+    "【設定SOCでの予想走行可能距離算出】": [
+        "PTSYS", "P_LMTNOW","SOC_DSP","PIEVE06","EV_RANGE"
+    ]
+}
