@@ -6,6 +6,8 @@ from datetime import datetime
 from datetime import timedelta
 import threading
 import numpy as np
+import time
+from process import ProgressPublisher
 
 # 前3个字节是TICKCOUT， 第四个字节是F0, 后面6个字节，年月日十分秒，2个字节tripcount, 1个字节gps时间同步状态，1个字节gps时间帧记录的原因，2个字节0x00
 # 启动会后第一条F0的数据帧是0x00, 0x00 ，0x00开头， DiagnosticRecorder开关打开，第四个字节是F2的数据帧，后面也会紧跟一条F0的时间帧，这个条前三个字节不是0x00
@@ -23,25 +25,48 @@ def safe_clean_convert(x):
 def get_content(line_index, start, bitNum, df):
     content = " "
     sec_line = df.loc[line_index]
-    content += " ".join([safe_clean_convert(sec_line[f'Byte {i}']) for i in range(start, start + bitNum)])
+    try:
+        content += " ".join([safe_clean_convert(sec_line[f'Byte {i}']) for i in range(start, start + bitNum)])
+    except Exception as e:
+        print(f'{e}')
     return content
 
 def np_split(df:pandas.DataFrame):
-    mark = 'F0'
-    col_mark = df.columns[3]
-    condition = (df[col_mark] == mark)
-    time_cols = df.columns[4:9]
-    time_str = df[time_cols].astype(str).apply(lambda x: ''.join(x), axis = 1)
-    times = time_str.apply(datetime.strptime())
-    split_indices = np.where()
+    values = df.values
+    f0_mask = values[:,3] == "f0"
+    # print(f0_mask)
+    col4 = values[:,4]
+    num_col4 = np.zeros(len(col4))
+    for i,val in enumerate(col4):
+        try:
+            num_col4[i] = int(val)
+        except ValueError as e:
+            num_col4[i] = 0
+    num_mask = num_col4 > 20
+    # print(num_mask)
+    split_mask = f0_mask & num_mask
+
+    split_indicates = np.where(split_mask)[0]
+    split_point = np.concatenate([[-1], split_indicates, [len(df)]])
+    # print(split_point)
+    return [
+        pandas.DataFrame(values[split_point[i]:split_point[i+1]], columns=df.columns)
+        for i in range(len(split_point) - 1)
+        if split_point[i] + 1 < split_point[i + 1]
+    ]
 
 def getTICKCOUT(dir, fn:str):
     path = os.path.join(dir, fn)
     print(f'start {path}')
     out = fn.replace('.csv','') + "_out.csv"
     df = pandas.read_csv(path)
-    dt  = datetime(2001, 1, 1)
-    pretick = 0
+    exportPath = os.path.join(dir, out)
+    df = getTICKOUT_dataframe(df, exportPath)
+    print(f'end save {exportPath}')
+
+def getTICKOUT_dataframe(df:pandas.DataFrame, out:str, listener:ProgressPublisher):
+    sem.acquire()
+    # print(f'start {out}')
     df["raw_value"]=""
     df["tickout"] = ""
     df["date"] = ""
@@ -49,21 +74,23 @@ def getTICKCOUT(dir, fn:str):
     df["message"] = ""
     df["len"] = ""
     df["content"] = ""
+    dt  = datetime(2001, 1, 1)
+    pretick = 0
     for idx, row in df.iterrows():
         # if idx > 150:
         #     break
         raw_value = [safe_clean_convert(row[f'Byte {i}']) for i in range(1,17)]
-        res = int(raw_value,16)
+        # res = int(raw_value,16)
         df.loc[idx, 'raw_value'] = " ".join(raw_value)
         combine_three = "".join(raw_value[:3])
         # print(combine_three)
         tickout = int(combine_three, 16) * 50
-        if tickout == 0:
-            dt = datetime(2001, 1, 1)
-            pretick = 0
+        # if tickout == 0:
+        #     dt = datetime(2001, 1, 1)
+        #     pretick = 0
         if raw_value[3] == 'F0':
             try:
-                year = int(raw_value[4])
+                year = int(raw_value[4]) + 2000
                 mon = int(raw_value[5])
                 day = int(raw_value[6])
                 hour = int(raw_value[7])
@@ -71,8 +98,9 @@ def getTICKCOUT(dir, fn:str):
                 sec = int(raw_value[9])
                 if year > 20:
                     dt = datetime(year, mon, day, hour, min, sec)
-                    print(f"{dt}")
-                print(f'{year} {mon} {min}')
+                    out = out.replace('.csv', f'_{dt.strftime("%Y%m%d_%H%M%S.csv")}')
+                    # print(f"{dt}")
+                # print(f'{year} {mon} {min}')
             except ValueError as e:
                 print(f'{raw_value[5:10]}')
         else:
@@ -90,8 +118,6 @@ def getTICKCOUT(dir, fn:str):
                     num -= len
                     line_index += 1
             df.loc[idx, "content"] = content
-
-            
         diffTick = tickout - pretick
         pretick = tickout
         dt = dt + timedelta(milliseconds=diffTick)
@@ -100,37 +126,52 @@ def getTICKCOUT(dir, fn:str):
         df.loc[idx, "time"] = dt.strftime("%H:%M:%S")
         # strr = f"{combine_three}\t{df.loc[idx, 'tickout']}\t{df.loc[idx, 'date']}\t{df.loc[idx, 'time']}"
         # print(f"{strr}")
-    exportPath = os.path.join(dir, out)
-    df.to_csv(exportPath)
-    print(f'end save {exportPath}')
-    # print(exportPath)
+    df.to_csv(out)
+    global index,total
+    index += 1
+    if listener:
+        listener.on_progress(index, total, out)
+    sem.release()
 
+def thread_TICKOUT(res:list, out_file:str, excelListener:ProgressPublisher):
+    global sem
+    sem = threading.Semaphore(4)
+    global total, index
+    total = len(res)
+    index = 0
+    threads = []
+    for i,d in enumerate(res):
+        path = os.path.join(out_file, f"TRC_CAN_out_{i}.csv")
+        th = threading.Thread(args=(d, path, excelListener), target=getTICKOUT_dataframe)
+        threads.append(th)
+        th.start()
 
 
 if __name__ == "__main__":
-    # parser = argparse.ArgumentParser(description='Convert hex dump to CSV file.')
-    # parser.add_argument('hex_file_path', nargs='?', default='TRC_CAN.dat', help='Path to the hex dump file.')
-    # parser.add_argument('output_dir', nargs='?', default='.', help='Output directory for CSV files.')
-    
-    # args = parser.parse_args()
-
-    # if args.output_dir:
-    #     os.makedirs(args.output_dir, exist_ok=True)  # Ensure the output directory exists
-
-    import_file = "D:\\DailyWork\\08\\07\\dt\\TRC_CAN.dat"
-    out_file = "D:\\Project\\c++\\testPanel\\traceDT2excel\\testOut"
+    start = time.time()
+    import_file = "D:/DailyWork/09/11/TRC_CAN.dat"
+    out_file = "D:/DailyWork/09/11/out"
     # # # hex_to_csv(args.hex_file_path, args.output_dir)
-    files = hex_to_csv(import_file, out_file, 100 * 10000 * 16)
-    print(f'end.... {files}')
-    # out = "TRC_CAN_1.csv"
-    # getTICKCOUT(out_file, out)
+    listener = ProgressPublisher()
+    files,dfs = hex_to_csv(import_file, out_file, 100 * 10000 * 16, listener)
+    df = pandas.concat(dfs, ignore_index=True)
+    # print(df)
+    res = np_split(df)
+    global total, index
+    total = len(res)
+    index = 0
+    print(f"table num{len(res)}")
+
     threads = []
-    for (f,df) in files:
-        name = os.path.basename(f)
-        th = threading.Thread(args=(out_file, name), target=getTICKCOUT)
+    global sem
+    sem = threading.Semaphore(4)
+
+    for i,d in enumerate(res):
+        path = os.path.join(out_file, f"TRC_CAN_out_{i}.csv")
+        th = threading.Thread(args=(d, path), target=thread_TICKOUT)
         threads.append(th)
         th.start()
-        # getTICKCOUT(out_file, name)
     for t in threads:
         t.join()
-    
+    elapsed_time = time.time() - start
+    print(f"Total processing time: {elapsed_time:.2f} seconds")
